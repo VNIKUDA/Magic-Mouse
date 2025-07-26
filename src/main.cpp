@@ -269,10 +269,7 @@ BLECharacteristic *keyboard;
 BleConnectionStatus *connectionStatus = new BleConnectionStatus();
 
 MPU6050 mpu;
-
-VectorFloat gravity;
-Quaternion quaternion;
-float ypr[3], last_ypr[3];
+VectorInt16 gyro;
 uint8_t FIFOBuffer[64];
 
 int wheelAction, lastWheelAction;
@@ -371,11 +368,6 @@ void setup()
 
     xTaskCreate((TaskFunction_t)taskServer, "server", 20000, NULL, 5, NULL);
 
-    mpu.dmpGetCurrentFIFOPacket(FIFOBuffer);
-    mpu.dmpGetQuaternion(&quaternion, FIFOBuffer);
-    mpu.dmpGetGravity(&gravity, &quaternion);
-    mpu.dmpGetYawPitchRoll(last_ypr, &quaternion, &gravity);
-
     lastWheelAction = 0;
     lastTime = millis();
 }
@@ -402,16 +394,10 @@ void loop()
     
         if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer))
         {
-            mpu.dmpGetQuaternion(&quaternion, FIFOBuffer);
-            mpu.dmpGetGravity(&gravity, &quaternion);
-            mpu.dmpGetYawPitchRoll(ypr, &quaternion, &gravity);
+            mpu.dmpGetGyro(&gyro, FIFOBuffer);
     
-            offsetX = (ypr[0] - last_ypr[0]) * 180/PI * 20;
-            offsetY = -(ypr[2] - last_ypr[2]) * 180/PI * 20;
-
-            for (int i = 0; i < 3; i++) {
-                last_ypr[i] = ypr[i];
-            }
+            offsetX = -gyro.z / 2;
+            offsetY = -gyro.x / 2;
         }
 
         uint8_t leftAction = leftButton.getClicked() or leftButton.getHold() ? MOUSE_LEFT : MOUSE_NONE;
